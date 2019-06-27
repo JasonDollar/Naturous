@@ -42,7 +42,7 @@
       "no-underscore-dangle": ["off"],
       "react/jsx-indent": [0],
       "react/jsx-one-expression-per-line":["off"],
-      "consistent-return": ["off"]
-      
+      "consistent-return": ["off"],
+      "comma-dangle": [2]
   }
 }
