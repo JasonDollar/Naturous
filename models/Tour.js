@@ -1,4 +1,6 @@
 const { Schema, model } = require('mongoose')
+const slugify = require('slugify')
+const validator = require('validator')
 
 const tourSchema = new Schema({
   name: {
@@ -6,7 +8,11 @@ const tourSchema = new Schema({
     trim: true,
     required: [true, 'A tour must have a name'],
     unique: true,
+    maxlength: [60, 'A tour name must have less or equal than 60 characters'],
+    minlength: [6, 'A tour name must have more or equal than 6 characters'],
+    // validate: [validator.isAlpha, 'Tour name must only contain letters'],
   },
+  slug: String,
   duration: {
     type: Number,
     required: [true, 'A tour must have duration'],
@@ -14,6 +20,8 @@ const tourSchema = new Schema({
   ratingsAverage: {
     type: Number,
     default: 4.5,
+    max: [5, 'Max rating is a 5'],
+    min: [1, 'Min rating is a 1'],
   },
   ratingsQuantity: {
     type: Number,
@@ -23,16 +31,28 @@ const tourSchema = new Schema({
     type: Number,
     required: [true, 'A tour must have a price'],
   },
+  priceDiscount: {
+    type: Number,
+    validate: {
+      validator(val) {
+        return val < this.price
+      },
+      message: 'Discount price of ({VALUE}) should not be below regular price',
+    },
+  },
   difficulty: {
     type: String,
     required: [true, 'A tour must have a difficulty'],
-    enum: ['easy', 'medium', 'difficult'],
+    enum: {
+      values: ['easy', 'medium', 'difficult'],
+      message: 'Difficulty is eiter ease, medium, difficult',
+    },
   },
   maxGroupSize: {
     type: Number,
     required: [true, 'A tour must have a group size'],
   },
-  priceDiscount: Number,
+
   summary: {
     type: String,
     trim: true,
@@ -53,6 +73,50 @@ const tourSchema = new Schema({
     select: false,
   },
   startDates: [Date],
+  secretTour: {
+    type: Boolean,
+    default: false,
+  },
+}, {
+  toJSON: { virtuals: true }, // when data is outputted it should use virtual fields
+  toObject: { virtuals: true },
+})
+
+tourSchema.virtual('durationWeeks').get(function() {
+  return this.duration / 7 // this points to current document
+})
+
+//save and createImageBitmap, not insertmany
+tourSchema.pre('save', function(next) {
+  this.slug = slugify(this.name, {lower: true})
+  next()
+})
+
+// tourSchema.post('save', function(doc, next) {
+//   console.log(doc)
+//   next()
+// })
+
+//query middleware
+// tourSchema.pre('find', function(next) {
+tourSchema.pre(/^find/, function(next) {
+  // this === find query
+  this.find({secretTour: {$ne: true}})
+  this.start = Date.now()
+  next()
+})
+
+tourSchema.post(/^find/, function(docs, next) {
+  // console.log(docs)
+  console.log(Date.now() - this.start)
+  next()
+})
+
+//aggregation
+tourSchema.pre('aggregate', function(next) {
+  //unshift bc it is an array
+  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } })
+  next()
 })
 
 const Tour = model('Tour', tourSchema)
