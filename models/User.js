@@ -1,4 +1,5 @@
 const { Schema, model } = require('mongoose')
+const bcrypt = require('bcryptjs')
 const validator = require('validator')
 
 const userSchema = new Schema({
@@ -25,11 +26,21 @@ const userSchema = new Schema({
     type: String,
     required: [true, 'Please confirm your password'],
     validate: {
+      // works only for save() and create()
       validator(val) {
         return val === this.password
       },
     },
   },
+})
+
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next()
+
+  this.password = await bcrypt.hash(this.password, 12)
+
+  this.passwordConfirm = undefined
+  next()
 })
 
 const User = model('User', userSchema)
