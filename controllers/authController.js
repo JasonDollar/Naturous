@@ -1,5 +1,5 @@
+const { promisify } = require('util')
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcryptjs')
 const User = require('../models/User')
 const catchAsync = require('../utils/catchAsync')
 const AppError = require('../utils/appError')
@@ -41,4 +41,27 @@ exports.login = catchAsync(async (req, res, next) => {
     status: 'success',
     token,
   })
+})
+
+exports.protect = catchAsync(async (req, res, next) => {
+  let token
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1]
+  }
+  if (!token) {
+    return next(new AppError('You are not logged in. Please log in to gain access', 401))
+  }
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET)
+  const freshUser = await User.findById(decoded.id)
+  if (!freshUser) {
+    return next(new AppError('The user belonging to this token no longer exists', 401))
+  }
+  const isPasswordChangedRecently = freshUser.changedPasswordAfter(token.iat)
+  if (isPasswordChangedRecently) {
+    return next(new AppError('User recently changed password. Please log in again!', 401))
+  }
+  
+  // grant access to protected routes
+  req.user = freshUser
+  next()
 })
