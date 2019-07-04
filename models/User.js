@@ -1,3 +1,4 @@
+const crypto = require('crypto')
 const { Schema, model } = require('mongoose')
 const bcrypt = require('bcryptjs')
 const validator = require('validator')
@@ -39,6 +40,8 @@ const userSchema = new Schema({
     },
   },
   passwordChangedAt: Date,
+  passwordResetToken: String,
+  passwordResetExpires: Date,
 })
 
 userSchema.pre('save', async function(next) {
@@ -61,6 +64,17 @@ userSchema.methods.changedPasswordAfter = function(jwtTimestamp) {
   }
   // false === not changed
   return false
+}
+
+userSchema.methods.createPasswordResetToken = function() {
+  const resetToken = crypto.randomBytes(32).toString('hex')
+  // encrypted version of token in DB
+  this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+  
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000 // next 10mins
+  console.log({resetToken}, this.passwordResetToken)
+  // returned token ready to be send to user by email
+  return resetToken
 }
 
 const User = model('User', userSchema)
