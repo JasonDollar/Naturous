@@ -10,7 +10,7 @@ process.on('uncaughtException', err => {
 dotenv.config({path: './config.env'})
 const app = require('./app')
 
-mongoose.connect(process.env.MONGO_URI_DEV, { useNewUrlParser: true })
+mongoose.connect(process.env.MONGO_URI_DEV, { useNewUrlParser: true, useFindAndModify: false })
   .then(() => console.log('db connected'))
   .catch(e => console.log('db error', e))
 

@@ -42,6 +42,11 @@ const userSchema = new Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+    select: false,
+  },
 })
 
 userSchema.pre('save', async function(next) {
@@ -50,6 +55,19 @@ userSchema.pre('save', async function(next) {
   this.password = await bcrypt.hash(this.password, 12)
 
   this.passwordConfirm = undefined
+  next()
+})
+
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password') || this.isNew ) return next()
+
+  this.passwordChangedAt = Date.now() - 1000
+  next()
+})
+
+// query middleware - /^find/ => all queries starting with find
+userSchema.pre(/^find/, function(next) {
+  this.find({ active: { $ne: false } })
   next()
 })
 
@@ -76,6 +94,8 @@ userSchema.methods.createPasswordResetToken = function() {
   // returned token ready to be send to user by email
   return resetToken
 }
+
+
 
 const User = model('User', userSchema)
 
