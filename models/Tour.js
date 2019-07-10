@@ -116,7 +116,13 @@ tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7 // this points to current document
 })
 
-//save and createImageBitmap, not insertmany
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  localField: '_id',
+  foreignField: 'tour',
+})
+
+//save and create, not insertmany
 tourSchema.pre('save', function(next) {
   this.slug = slugify(this.name, {lower: true})
   next()

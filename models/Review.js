@@ -29,12 +29,16 @@ const reviewSchema = new Schema ({
 })
 
 reviewSchema.pre(/^find/, function(next) {
+  // this.populate({
+  //   path: 'user',
+  //   select: 'name photo',
+  // }).populate({
+  //   path: 'tour',
+  //   select: 'name duration price',
+  // })
   this.populate({
     path: 'user',
     select: 'name photo',
-  }).populate({
-    path: 'tour',
-    select: 'name duration price',
   })
   next()
 })
