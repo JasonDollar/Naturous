@@ -1,7 +1,6 @@
 const { Schema, model } = require('mongoose')
 const slugify = require('slugify')
 const validator = require('validator')
-const User = require('./User')
 
 const tourSchema = new Schema({
   name: {
@@ -102,7 +101,12 @@ const tourSchema = new Schema({
       day: Number,
     },
   ],
-  guides: Array,
+  guides: [
+    {
+      type: Schema.ObjectId,
+      ref: 'User',
+    },
+  ],
 }, {
   toJSON: { virtuals: true }, // when data is outputted it should use virtual fields
   toObject: { virtuals: true },
@@ -118,14 +122,9 @@ tourSchema.pre('save', function(next) {
   next()
 })
 
-tourSchema.pre('save', async function(next) {
-  const guidesPromises = this.guides.map(async id => await User.findById(id))
-  this.guides = await Promise.all(guidesPromises)
-  next()
-})
-
-// tourSchema.post('save', function(doc, next) {
-//   console.log(doc)
+// tourSchema.pre('save', async function(next) {
+//   const guidesPromises = this.guides.map(async id => await User.findById(id))
+//   this.guides = await Promise.all(guidesPromises)
 //   next()
 // })
 
@@ -138,11 +137,20 @@ tourSchema.pre(/^find/, function(next) {
   next()
 })
 
+tourSchema.pre(/^find/, function(next) {
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt',
+  })
+  next()
+})
+
 tourSchema.post(/^find/, function(docs, next) {
   // console.log(docs)
   console.log(Date.now() - this.start)
   next()
 })
+
 
 //aggregation
 tourSchema.pre('aggregate', function(next) {
