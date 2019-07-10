@@ -1,6 +1,7 @@
 const { Schema, model } = require('mongoose')
 const slugify = require('slugify')
 const validator = require('validator')
+const User = require('./User')
 
 const tourSchema = new Schema({
   name: {
@@ -77,6 +78,31 @@ const tourSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  startLocation: {
+    // geoJSON - for geospatial data (type and coordinates are minimum)
+    type: {
+      type: String,
+      default: 'Point',
+      enum: ['Point'],
+    },
+    coordinates: [Number],
+    address: String,
+    description: String,
+  },
+  locations: [
+    {
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point'],
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+      day: Number,
+    },
+  ],
+  guides: Array,
 }, {
   toJSON: { virtuals: true }, // when data is outputted it should use virtual fields
   toObject: { virtuals: true },
@@ -89,6 +115,12 @@ tourSchema.virtual('durationWeeks').get(function() {
 //save and createImageBitmap, not insertmany
 tourSchema.pre('save', function(next) {
   this.slug = slugify(this.name, {lower: true})
+  next()
+})
+
+tourSchema.pre('save', async function(next) {
+  const guidesPromises = this.guides.map(async id => await User.findById(id))
+  this.guides = await Promise.all(guidesPromises)
   next()
 })
 
