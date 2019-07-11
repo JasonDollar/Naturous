@@ -17,7 +17,8 @@ router.patch('/updateMyPassword',authController.protect, authController.updatePa
 router
   .route('/')
   .get(userController.getAllUsers)
-  
+router
+  .route('/:id')
   .patch(userController.updateUser)
   .delete(userController.deleteUser)
 

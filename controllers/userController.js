@@ -1,6 +1,7 @@
 const User = require('../models/User')
 const catchAsync = require('../utils/catchAsync')
 const AppError = require('../utils/appError')
+const factory = require('./handlerFactory')
 
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {}
@@ -53,9 +54,4 @@ exports.updateUser = (req, res) => {
     message: 'server error',
   })
 }
-exports.deleteUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'server error',
-  })
-}
+exports.deleteUser = factory.deleteOne(User)
