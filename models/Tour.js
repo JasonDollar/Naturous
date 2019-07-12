@@ -22,6 +22,9 @@ const tourSchema = new Schema({
     default: 4.5,
     max: [5, 'Max rating is a 5'],
     min: [1, 'Min rating is a 1'],
+    set(val) {
+      return Math.round(val * 10) / 10
+    },
   },
   ratingsQuantity: {
     type: Number,
@@ -111,6 +114,10 @@ const tourSchema = new Schema({
   toJSON: { virtuals: true }, // when data is outputted it should use virtual fields
   toObject: { virtuals: true },
 })
+
+// tourSchema.index({ price: 1 })
+tourSchema.index({ price: 1, ratingsAverage: -1 })
+tourSchema.index({ slug: 1 })
 
 tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7 // this points to current document
