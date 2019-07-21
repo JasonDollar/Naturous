@@ -10,6 +10,7 @@ const hpp = require('hpp')
 const tourRouter = require('./routes/tourRoutes')
 const userRouter = require('./routes/userRoutes')
 const reviewRouter = require('./routes/reviewRoutes')
+const viewRouter = require('./routes/viewRoutes')
 const AppError = require('./utils/appError')
 const globalErrorHandler = require('./controllers/errorController')
 
@@ -24,7 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 if (process.env.NODE_ENV === 'development') {
   // dev logging
-  app.use(morgan('dev'))
+  app.use(morgan('dev')) 
 }
 
 // set security http headers
@@ -61,13 +62,8 @@ app.use((req, res, next) => {
   next()
 })
 
-app.get('/', (req, res) => {
-  res.status(200).render('base', {
-    tour: 'The Forest Hiker',
-    author: 'Jason'
-  })
-})
 
+app.use('/', viewRouter)
 app.use('/api/v1/tours', tourRouter)
 app.use('/api/v1/users', userRouter)
 app.use('/api/v1/reviews', reviewRouter)
