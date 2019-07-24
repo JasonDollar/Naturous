@@ -5,33 +5,64 @@ const handleCastErrorDB = err => {
   return new AppError(message, 400)
 }
 
-const sendErrorDev = (err, res) => {
-  res.status(err.statusCode).json({
-    status: err.status,
-    error: err,
-    message: err.message,
-    stack: err.stack,
+const sendErrorDev = (err,req, res) => {
+  // API
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(err.statusCode).json({
+      status: err.status,
+      error: err,
+      message: err.message,
+      stack: err.stack,
+    })
+  } 
+
+  // RENDERED WEBSITE
+  return res.status(err.statusCode).render('error', {
+    title: 'Something went wrong',
+    msg: err.message,
   })
+  
 }
 
 const sendErrorProd = (err, res) => {
-  // operational, trusted error: send message to the client
-  if (err.isOperational) {
-    res.status(err.statusCode).json({
-      status: err.status,
-      message: err.message,
-    })
-  // programming or other unknown error: don't leak error detail
-  } else {
+  if (req.originalUrl.startsWith('/api')) {
+    // operational, trusted error: send message to the client
+    if (err.isOperational) {
+      return res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message,
+      })
+    // programming or other unknown error: don't leak error detail
+    } 
     console.error('ERROR', err)
 
     // generic message
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
       message: 'Something went very wrong',
     })
-  }
+    
+    /*eslint-disable */
+  } else {
+    if (err.isOperational) {
+      return res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message,
+      })
+    // programming or other unknown error: don't leak error detail
+    } 
+      console.error('ERROR', err)
+
+    // RENDERED WEBSITE
+    return res.status(err.statusCode).render('error', {
+      title: 'Something went wrong',
+      msg: 'Please try again later',
+    })
+    
+
+  } 
 }
+/* eslint-enable */
 
 const handleDuplicateFieldsDB = err => {
   const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0]
@@ -57,9 +88,11 @@ module.exports = (err, req, res, next) => {
   err.status = err.status || 'error'
 
   if (process.env.NODE_ENV === 'development') {
-    sendErrorDev(err, res)
+    sendErrorDev(err,req, res)
   } else if (process.env.NODE_ENV === 'production') {
-    let error = {...err}
+    let error = { ...err }
+    error.message = err.message
+    
     if (error.name === 'CastError') error = handleCastErrorDB(error)
     if (err.code === 11000) error = handleDuplicateFieldsDB(error)
     if (err.name === 'ValidationError') error = handleValidationErrorDB(error)
